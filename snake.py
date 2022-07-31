@@ -1,28 +1,27 @@
 import pygame as pygame
 import sys
-from random import randrange
+import random
 
 vec2 = pygame.math.Vector2
 
 class Snake:
     def __init__(self, game):
         self.game = game
+        self.grid_list = game.grid_list
         self.size = game.TILE_SIZE
         # starting rectangle of head of snake
         self.rect = pygame.rect.Rect([0, 0, game.TILE_SIZE - 2, game.TILE_SIZE - 2])
-        # find range of where starting head can be
-        self.range = self.size // 2, self.game.WINDOW_SIZE - self.size // 2, self.size
-        self.rect.center = self.get_random_position()
 
+        # select random x and y for starting head of snake
+        self.rect.x, self.rect.y = self.place()
         self.direction = vec2(0, 0)
-        self.step_delay = 100  # milliseconds
+        self.step_delay = 50  # milliseconds
         self.time = 0
         self.length = 1
         # keep segments of snake in a list
         self.segments = []
         # using this dictionary so later when we move, we can check which directions we are able to go in
         self.directions = {pygame.K_UP: 1, pygame.K_DOWN: 1, pygame.K_LEFT: 1, pygame.K_RIGHT: 1}
-
     # take in user input to move the snake
     def control(self, event):
         if event.type == pygame.KEYDOWN:
@@ -52,8 +51,8 @@ class Snake:
         return False
 
     # gets random position for the snake and apple
-    def get_random_position(self):
-        return [randrange(*self.range), randrange(*self.range)]
+    def place(self):
+        return random.choice(self.game.grid_list)
 
     # check if snake hits border of wall
     def check_borders(self):
@@ -64,8 +63,8 @@ class Snake:
 
     # check if snake ate the food
     def check_food(self):
-        if self.rect.center == self.game.food.rect.center:
-            self.game.food.rect.center = self.get_random_position()
+        if (self.rect.x, self.rect.y) == (self.game.food.rect.x, self.game.food.rect.y):
+            self.game.food.rect.x, self.game.food.rect.y= self.game.food.place(self)
             self.length += 1
 
     # check if the snake ate itself
@@ -93,15 +92,27 @@ class Snake:
 
 
 class Food:
-    def __init__(self, game):
+    def __init__(self, game, snake):
         self.game = game
         self.size = game.TILE_SIZE
         self.rect = pygame.rect.Rect([0, 0, game.TILE_SIZE - 2, game.TILE_SIZE - 2])
-        self.rect.center = self.game.snake.get_random_position()
+        self.rect.x, self.rect.y = self.place(snake)
 
     def draw(self):
         pygame.draw.rect(self.game.win, 'red', self.rect)
 
+    # function place that places the apple in a random position
+    # apple needs to be placed not inside of the snake
+    # returns list: [x, y] coordinates for new food position
+    def place(self, snake):
+        # add snake body to set to know where not to place apple
+        snake_set = {(rect.x, rect.y) for rect in snake.segments}
+        print(snake_set)
+        # keep choosing random choice for apple until not in snake body
+        x, y = random.choice(self.game.grid_list)
+        while (x, y) in snake_set:
+            x, y = random.choice(self.game.grid_list)
+        return [x, y]
 # class Game
 # handles pygame environment
 class Game:
@@ -113,9 +124,11 @@ class Game:
         self.win = pygame.display.set_mode([self.WINDOW_SIZE] * 2)
 
         self.clock = pygame.time.Clock()
+        self.grid_list = [[x, y] for x in range(0, self.WINDOW_SIZE, self.TILE_SIZE)
+                            for y in range(0, self.WINDOW_SIZE, self.TILE_SIZE)]
+
         self.new_game()
         self.score = 0
-
     def draw_grid(self):
         for x in range(0, self.WINDOW_SIZE, self.TILE_SIZE):
             pygame.draw.line(self.win, [50] * 3, (x, 0), (x, self.WINDOW_SIZE))
@@ -123,12 +136,12 @@ class Game:
 
     def new_game(self):
         self.snake = Snake(self)
-        self.food = Food(self)
+        self.food = Food(self, self.snake)
 
     def update(self):
         self.snake.update()
         pygame.display.flip()
-        self.clock.tick(60)
+        self.clock.tick(160)
 
     def draw(self):
         self.win.fill('black')
