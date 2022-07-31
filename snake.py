@@ -15,13 +15,14 @@ class Snake:
         # select random x and y for starting head of snake
         self.rect.x, self.rect.y = self.place()
         self.direction = vec2(0, 0)
-        self.step_delay = 50  # milliseconds
+        self.step_delay = 70  # milliseconds
         self.time = 0
         self.length = 1
         # keep segments of snake in a list
         self.segments = []
         # using this dictionary so later when we move, we can check which directions we are able to go in
         self.directions = {pygame.K_UP: 1, pygame.K_DOWN: 1, pygame.K_LEFT: 1, pygame.K_RIGHT: 1}
+
     # take in user input to move the snake
     def control(self, event):
         if event.type == pygame.KEYDOWN:
@@ -52,7 +53,8 @@ class Snake:
 
     # gets random position for the snake and apple
     def place(self):
-        return random.choice(self.game.grid_list)
+        x, y =  random.choice(self.game.grid_list)
+        return [x + 2, y + 2]
 
     # check if snake hits border of wall
     def check_borders(self):
@@ -112,7 +114,7 @@ class Food:
         x, y = random.choice(self.game.grid_list)
         while (x, y) in snake_set:
             x, y = random.choice(self.game.grid_list)
-        return [x, y]
+        return [x + 2, y + 2]
 # class Game
 # handles pygame environment
 class Game:

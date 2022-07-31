@@ -22,8 +22,8 @@ BLUE1 = (0, 0, 255)
 BLUE2 = (0, 100, 255)
 BLACK = (0,0,0)
 
-BLOCK_SIZE = 40
-SPEED = 10
+BLOCK_SIZE = 20
+SPEED = 20
 
 class SnakeGame:
 
@@ -92,7 +92,7 @@ class SnakeGame:
 
         # 5. update ui and clock
         self._update_ui()
-        self.clock.tick(60)
+        self.clock.tick(20)
         # 6. return game over and score
         return game_over, self.score
 
