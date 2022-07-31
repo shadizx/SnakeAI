@@ -13,9 +13,10 @@ class Snake:
         self.rect = pygame.rect.Rect([0, 0, game.TILE_SIZE - 2, game.TILE_SIZE - 2])
 
         # select random x and y for starting head of snake
-        self.rect.x, self.rect.y = self.place()
-        self.direction = vec2(0, 0)
-        self.step_delay = 70  # milliseconds
+        self.rect.x, self.rect.y = [602, 202]
+        self.direction = vec2(self.size, 0)
+
+        self.step_delay = 100  # milliseconds
         self.time = 0
         self.length = 1
         # keep segments of snake in a list
@@ -51,16 +52,16 @@ class Snake:
             return True
         return False
 
-    # gets random position for the snake and apple
+    # gets random position for the snake
     def place(self):
         x, y =  random.choice(self.game.grid_list)
         return [x + 2, y + 2]
 
     # check if snake hits border of wall
     def check_borders(self):
-        if self.rect.left < 0 or self.rect.right > self.game.WINDOW_SIZE:
+        if self.rect.left < self.game.OFFSET or self.rect.right > self.game.WIDTH:
             self.game.new_game()
-        if self.rect.top < 0 or self.rect.bottom > self.game.WINDOW_SIZE:
+        if self.rect.top < 0 or self.rect.bottom > self.game.HEIGHT:
             self.game.new_game()
 
     # check if snake ate the food
@@ -112,7 +113,7 @@ class Food:
         print(snake_set)
         # keep choosing random choice for apple until not in snake body
         x, y = random.choice(self.game.grid_list)
-        while (x, y) in snake_set:
+        while (x + 2, y + 2) in snake_set:
             x, y = random.choice(self.game.grid_list)
         return [x + 2, y + 2]
 # class Game
@@ -121,24 +122,39 @@ class Game:
     def __init__(self):
         pygame.init()
         pygame.display.set_caption("SnakeAI")
-        self.WINDOW_SIZE = 800                          # window size is square
-        self.TILE_SIZE = 40                             # size of each tile
-        self.win = pygame.display.set_mode([self.WINDOW_SIZE] * 2)
+        self.HEIGHT = 800
+        self.WIDTH = 1200
+        self.OFFSET = self.WIDTH - self.HEIGHT
+        self.TILE_SIZE = 40
+        self.win = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
 
         self.clock = pygame.time.Clock()
-        self.grid_list = [[x, y] for x in range(0, self.WINDOW_SIZE, self.TILE_SIZE)
-                            for y in range(0, self.WINDOW_SIZE, self.TILE_SIZE)]
-
+        self.grid_list = [[x, y] for x in range(self.OFFSET, self.WIDTH, self.TILE_SIZE)
+                            for y in range(0, self.HEIGHT, self.TILE_SIZE)]
+        print(self.grid_list)
         self.new_game()
         self.score = 0
-    def draw_grid(self):
-        for x in range(0, self.WINDOW_SIZE, self.TILE_SIZE):
-            pygame.draw.line(self.win, [50] * 3, (x, 0), (x, self.WINDOW_SIZE))
-            pygame.draw.line(self.win, [50] * 3, (0, x), (self.WINDOW_SIZE, x))
 
     def new_game(self):
         self.snake = Snake(self)
         self.food = Food(self, self.snake)
+
+    def draw_grid(self):
+        for x in range(self.OFFSET, self.WIDTH, self.TILE_SIZE):
+            pygame.draw.line(self.win, (50, 50, 50), (x, 0), (x, self.HEIGHT))
+            pygame.draw.line(self.win, (50, 50, 50), (self.OFFSET, x - self.OFFSET), (self.WIDTH, x - self.OFFSET))
+        # draw first red line
+        pygame.draw.line(self.win, (255, 0, 0), (self.OFFSET, 0), (self.OFFSET, self.HEIGHT))
+
+    def draw_name(self):
+        name_font = pygame.font.Font('Snake Chan.otf', 80)
+        name_text = name_font.render("Snake", True, (0, 255, 0))
+        self.win.blit(name_text, [40, 50])
+
+    def draw_score(self):
+        score_font = pygame.font.Font('Azonix.otf', 45)
+        score_text = score_font.render(f"Score: {self.snake.length}", True, (255, 255, 255))
+        self.win.blit(score_text, [80, 160])
 
     def update(self):
         self.snake.update()
@@ -147,7 +163,9 @@ class Game:
 
     def draw(self):
         self.win.fill('black')
+        self.draw_name()
         self.draw_grid()
+        self.draw_score()
         self.food.draw()
         self.snake.draw()
 
