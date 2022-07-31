@@ -131,9 +131,8 @@ class Game:
         self.clock = pygame.time.Clock()
         self.grid_list = [[x, y] for x in range(self.OFFSET, self.WIDTH, self.TILE_SIZE)
                             for y in range(0, self.HEIGHT, self.TILE_SIZE)]
-        print(self.grid_list)
         self.new_game()
-        self.score = 0
+        self.frame_iteration = 0
 
     def new_game(self):
         self.snake = Snake(self)
@@ -154,7 +153,7 @@ class Game:
     def draw_score(self):
         score_font = pygame.font.Font('Azonix.otf', 45)
         score_text = score_font.render(f"Score: {self.snake.length}", True, (255, 255, 255))
-        self.win.blit(score_text, [80, 160])
+        self.win.blit(score_text, [70, 160])
 
     def update(self):
         self.snake.update()
@@ -175,7 +174,6 @@ class Game:
                 pygame.quit()
                 sys.exit()
             # snake control
-            self.snake.control(event)
 
     def run(self):
         while True:

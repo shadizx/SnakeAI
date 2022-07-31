@@ -4,8 +4,6 @@ from enum import Enum
 from collections import namedtuple
 
 pygame.init()
-font = pygame.font.Font('arial.ttf', 25)
-#font = pygame.font.SysFont('arial', 25)
 
 class Direction(Enum):
     RIGHT = 1
@@ -15,43 +13,43 @@ class Direction(Enum):
 
 Point = namedtuple('Point', 'x, y')
 
-# rgb colors
-WHITE = (255, 255, 255)
-RED = (200,0,0)
-BLUE1 = (0, 0, 255)
-BLUE2 = (0, 100, 255)
-BLACK = (0,0,0)
-
-BLOCK_SIZE = 20
-SPEED = 20
-
 class SnakeGame:
 
-    def __init__(self, w=800, h=800):
-        self.w = w
-        self.h = h
+    def __init__(self, width=1200, height=800):
+        self.WIDTH = width
+        self.HEIGHT = height
+        self.OFFSET = self.WIDTH - self.HEIGHT
+        self.TILE_SIZE = 40
         # init display
-        self.display = pygame.display.set_mode((self.w, self.h))
-        pygame.display.set_caption('Snake')
+        self.grid_list = [[x, y] for x in range(self.OFFSET, self.WIDTH, self.TILE_SIZE)
+                            for y in range(0, self.HEIGHT, self.TILE_SIZE)]
+
+        self.win = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
+        pygame.display.set_caption('SnakeAI')
         self.clock = pygame.time.Clock()
         self.directions = {pygame.K_UP: 1, pygame.K_DOWN: 1, pygame.K_LEFT: 1, pygame.K_RIGHT: 1}
+        self.start()
 
+    def start(self):
         # init game state
         self.direction = Direction.RIGHT
 
-        self.head = Point(self.w/2, self.h/2)
+        self.head = Point(600, 200)
         self.snake = [self.head]
 
         self.score = 0
         self.food = None
-        self._place_food()
+        self.place_food()
+        self.frame_iteration = 0
 
-    def _place_food(self):
-        x = random.randint(0, (self.w-BLOCK_SIZE )//BLOCK_SIZE )*BLOCK_SIZE
-        y = random.randint(0, (self.h-BLOCK_SIZE )//BLOCK_SIZE )*BLOCK_SIZE
+    def place_food(self):
+        # add snake body to set to know where not to place apple
+        snake_set = {(rect.x, rect.y) for rect in self.snake}
+        # keep choosing random choice for apple until not in snake body
+        x, y = random.choice(self.grid_list)
+        while (x, y) in snake_set:
+            x, y = random.choice(self.grid_list)
         self.food = Point(x, y)
-        if self.food in self.snake:
-            self._place_food()
 
     def play_step(self):
         # 1. collect user input
@@ -79,26 +77,27 @@ class SnakeGame:
 
         # 3. check if game over
         game_over = False
-        if self._is_collision():
+        if self.is_collision():
             game_over = True
             return game_over, self.score
 
         # 4. place new food or just move
         if self.head == self.food:
             self.score += 1
-            self._place_food()
+            self.place_food()
         else:
             self.snake.pop()
 
         # 5. update ui and clock
-        self._update_ui()
-        self.clock.tick(20)
+        self.update_ui()
+        self.clock.tick(12)
         # 6. return game over and score
         return game_over, self.score
 
-    def _is_collision(self):
+    def is_collision(self):
         # hits boundary
-        if self.head.x > self.w - BLOCK_SIZE or self.head.x < 0 or self.head.y > self.h - BLOCK_SIZE or self.head.y < 0:
+        if self.head.x > self.WIDTH - self.TILE_SIZE or self.head.x < self.OFFSET or \
+           self.head.y > self.HEIGHT - self.TILE_SIZE or self.head.y < 0:
             return True
         # hits itself
         if self.head in self.snake[1:]:
@@ -106,30 +105,51 @@ class SnakeGame:
 
         return False
 
-    def _update_ui(self):
-        self.display.fill(BLACK)
+    def draw_grid(self):
+        for x in range(self.OFFSET, self.WIDTH, self.TILE_SIZE):
+            pygame.draw.line(self.win, (50, 50, 50), (x, 0), (x, self.HEIGHT))
+            pygame.draw.line(self.win, (50, 50, 50), (self.OFFSET, x - self.OFFSET), (self.WIDTH, x - self.OFFSET))
+        # draw first red line
+        pygame.draw.line(self.win, (255, 0, 0), (self.OFFSET, 0), (self.OFFSET, self.HEIGHT))
 
+    def draw_name(self):
+        name_font = pygame.font.Font('Snake Chan.otf', 80)
+        name_text = name_font.render("Snake", True, (0, 255, 0))
+        self.win.blit(name_text, [40, 50])
+
+    def draw_score(self):
+        score_font = pygame.font.Font('Azonix.otf', 45)
+        score_text = score_font.render(f"Score: {len(self.snake)}", True, (255, 255, 255))
+        self.win.blit(score_text, [70, 160])
+
+    def update_ui(self):
+        self.win.fill('black')
+
+        # draw UI
+        self.draw_name()
+        self.draw_score()
+
+        # draw snake
         for pt in self.snake:
-            pygame.draw.rect(self.display, BLUE1, pygame.Rect(pt.x, pt.y, BLOCK_SIZE, BLOCK_SIZE))
-            pygame.draw.rect(self.display, BLUE2, pygame.Rect(pt.x+4, pt.y+4, 12, 12))
+            pygame.draw.rect(self.win, 'green', pygame.Rect(pt.x, pt.y, self.TILE_SIZE, self.TILE_SIZE))
 
-        pygame.draw.rect(self.display, RED, pygame.Rect(self.food.x, self.food.y, BLOCK_SIZE, BLOCK_SIZE))
+        # draw food
+        pygame.draw.rect(self.win, 'red', pygame.Rect(self.food.x, self.food.y, self.TILE_SIZE, self.TILE_SIZE))
+        self.draw_grid()
 
-        text = font.render("Score: " + str(self.score), True, WHITE)
-        self.display.blit(text, [0, 0])
         pygame.display.flip()
 
     def _move(self, direction):
         x = self.head.x
         y = self.head.y
         if direction == Direction.RIGHT:
-            x += BLOCK_SIZE
+            x += self.TILE_SIZE
         elif direction == Direction.LEFT:
-            x -= BLOCK_SIZE
+            x -= self.TILE_SIZE
         elif direction == Direction.DOWN:
-            y += BLOCK_SIZE
+            y += self.TILE_SIZE
         elif direction == Direction.UP:
-            y -= BLOCK_SIZE
+            y -= self.TILE_SIZE
 
         self.head = Point(x, y)
 
