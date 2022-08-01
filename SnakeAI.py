@@ -27,9 +27,9 @@ class SnakeGameAI:
         self.win = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
         pygame.display.set_caption('SnakeAI')
         self.clock = pygame.time.Clock()
-        self.start()
+        self.reset()
 
-    def start(self):
+    def reset(self):
         # init game state
         self.direction = Direction.RIGHT
 
@@ -83,7 +83,7 @@ class SnakeGameAI:
 
         # 5. update ui and clock
         self.update_ui()
-        self.clock.tick(12)
+        self.clock.tick(40)
         # 6. return game over and score
         return reward, game_over, self.score
 
@@ -92,7 +92,7 @@ class SnakeGameAI:
             pt = self.head
         # hits boundary
         if pt.x > self.WIDTH - self.TILE_SIZE or pt.x < self.OFFSET or \
-           pt.y > self.h - self.TILE_SIZE or pt.y < 0:
+           pt.y > self.HEIGHT - self.TILE_SIZE or pt.y < 0:
             return True
         # hits itself
         if pt in self.snake[1:]:
@@ -114,7 +114,7 @@ class SnakeGameAI:
 
     def draw_score(self):
         score_font = pygame.font.Font('Azonix.otf', 45)
-        score_text = score_font.render(f"Score: {self.snake.length}", True, (255, 255, 255))
+        score_text = score_font.render(f"Score: {len(self.snake) - 1}", True, (255, 255, 255))
         self.win.blit(score_text, [70, 160])
 
     def update_ui(self):
