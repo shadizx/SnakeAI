@@ -83,7 +83,7 @@ class SnakeGameAI:
 
         # 5. update ui and clock
         self.update_ui()
-        self.clock.tick(40)
+        self.clock.tick(120)
         # 6. return game over and score
         return reward, game_over, self.score
 

@@ -8,8 +8,11 @@ from helper import plot
 
 MAX_MEMORY = 100000
 BATCH_SIZE = 1000
-LEARNING_RATE = 0.001
+LEARNING_RATE = 0.002
 
+max_exploration_rate = 1
+min_exploration_rate = 0.01
+exploration_decay_rate = 0.05
 class Agent:
 
     def __init__(self):
@@ -17,10 +20,10 @@ class Agent:
         # parameter to control randomness
         self.epsilon = 0
         # discount rate
-        self.gamma = 0.9
+        self.gamma = 0.8
         self.memory = deque(maxlen=MAX_MEMORY)
         # model takes 11 states, one hidden layer, and 3 for output because 3 different numbers in action
-        self.model = Linear_QNet(14, 256, 3)
+        self.model = Linear_QNet(14, 450, 3)
         self.trainer = QTrainer(self.model, learning_rate= LEARNING_RATE, gamma=self.gamma)
 
     # storing 11 states
@@ -111,14 +114,16 @@ class Agent:
         # when model gets better, we will do less random moves
 
         # more games = smaller epsilon
-        self.epsilon = 80 - self.number_of_games
+        self.epsilon = min_exploration_rate + \
+                       (max_exploration_rate - min_exploration_rate) * np.exp(-exploration_decay_rate*self.number_of_games)
+
         final_move = [0, 0, 0]
 
         # get random move
         # when epsilon gets smaller, less chance of going into this if statement
         # ex: starting with 80/200 chance then going to 10/200 chance
         # can even become become negative, then no random moves
-        if random.randint(0, 200) < self.epsilon:
+        if random.uniform(0, 1) < self.epsilon:
             move = random.randint(0, 2)
             final_move[move] = 1
         else:
@@ -140,6 +145,8 @@ def train():
 
     # training loop
     while True:
+        if agent.number_of_games == 400:
+            break
         # get old/current state
         state_old = agent.get_state(game)
 
@@ -159,6 +166,7 @@ def train():
         if done:
             # train long memory/replay memory
             #       trains on all the previous moves played to improve
+            print(f"{agent.epsilon=}")
             game.reset()
             agent.number_of_games += 1
             agent.train_long_memory()
