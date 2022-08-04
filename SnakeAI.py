@@ -100,6 +100,54 @@ class SnakeGameAI:
 
         return False
 
+    # function that calculates which direction is the 'safest' by checking each square in each direction
+    # returns[straight, right, left] and 1 means the direction that is the safest
+    # ex: [1, 0, 0] means that right and left have closer dangers and snake should go straight
+    def calculate_far_dangers(self):
+        snake_set = {(rect.x, rect.y) for rect in self.snake}
+        head = self.snake[0]
+        direction = self.direction
+
+        if direction == Direction.LEFT:
+            straight_start, straight_end, straight_inc = head.x - self.TILE_SIZE, self.OFFSET, -self.TILE_SIZE
+            right_start, right_end, right_inc = head.y - self.TILE_SIZE, 0, -self.TILE_SIZE
+            left_start, left_end, left_inc = head.y + self.TILE_SIZE, self.HEIGHT, self.TILE_SIZE
+        elif direction == Direction.RIGHT:
+            straight_start, straight_end, straight_inc = head.x + self.TILE_SIZE, self.WIDTH, self.TILE_SIZE
+            right_start, right_end, right_inc = head.y + self.TILE_SIZE, self.HEIGHT, self.TILE_SIZE
+            left_start, left_end, left_inc = head.y - self.TILE_SIZE, 0, -self.TILE_SIZE
+        elif direction == Direction.UP:
+            straight_start, straight_end, straight_inc = head.y - self.TILE_SIZE, 0, -self.TILE_SIZE
+            right_start, right_end, right_inc = head.x + self.TILE_SIZE, self.WIDTH, self.TILE_SIZE
+            left_start, left_end, left_inc = head.x - self.TILE_SIZE, self.OFFSET, -self.TILE_SIZE
+        else:
+            straight_start, straight_end, straight_inc = head.y + self.TILE_SIZE, self.HEIGHT, self.TILE_SIZE
+            right_start, right_end, right_inc = head.x - self.TILE_SIZE, self.OFFSET, -self.TILE_SIZE
+            left_start, left_end, left_inc = head.x + self.TILE_SIZE, self.WIDTH, self.TILE_SIZE
+
+        # check straight
+        straight_count = 1
+        for straight in range(straight_start, straight_end, straight_inc):
+            # if we found a collision (body of snake) break and save count
+            if (straight, head.y) in snake_set:
+                break
+            straight_count += 1
+        # check right
+        right_count = 1
+        for right in range(right_start, right_end, right_inc):
+            if (head.x, right) in snake_set:
+                break
+            right_count += 1
+        # check left
+        left_count = 1
+        for left in range(left_start, left_end, left_inc):
+            if (head.x, left) in snake_set:
+                break
+            left_count += 1
+        divisor = max(straight_count, right_count, left_count)
+
+        return straight_count // divisor, right_count // divisor, left_count // divisor
+
     def draw_grid(self):
         for x in range(self.OFFSET, self.WIDTH, self.TILE_SIZE):
             pygame.draw.line(self.win, (50, 50, 50), (x, 0), (x, self.HEIGHT))

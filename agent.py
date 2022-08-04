@@ -6,7 +6,7 @@ from SnakeAI import SnakeGameAI, Direction, Point
 from model import Linear_QNet, QTrainer
 from helper import plot
 
-MAX_MEMORY = 100_000
+MAX_MEMORY = 100000
 BATCH_SIZE = 1000
 LEARNING_RATE = 0.001
 
@@ -20,7 +20,7 @@ class Agent:
         self.gamma = 0.9
         self.memory = deque(maxlen=MAX_MEMORY)
         # model takes 11 states, one hidden layer, and 3 for output because 3 different numbers in action
-        self.model = Linear_QNet(11, 256, 3)
+        self.model = Linear_QNet(14, 256, 3)
         self.trainer = QTrainer(self.model, learning_rate= LEARNING_RATE, gamma=self.gamma)
 
     # storing 11 states
@@ -45,7 +45,10 @@ class Agent:
         dir_u = game.direction == Direction.UP
         dir_d = game.direction == Direction.DOWN
 
-        # create list for 11 states to then return the 11 sized array
+        # calculate far dangers
+        far_danger_straight, far_danger_right, far_danger_left = game.calculate_far_dangers()
+
+        # create list for 11 states to then return the 14 sized array
 
         state = [
             # Danger Straight
@@ -65,6 +68,9 @@ class Agent:
             (dir_r and game.is_collision(point_u)) or
             (dir_u and game.is_collision(point_l)) or
             (dir_d and game.is_collision(point_r)),
+
+            # Far Dangers
+            far_danger_straight, far_danger_right, far_danger_left,
 
             # Move Direction
             dir_l, dir_r, dir_u, dir_d,
