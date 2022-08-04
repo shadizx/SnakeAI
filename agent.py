@@ -6,14 +6,13 @@ from SnakeAI import SnakeGameAI, Direction, Point
 from model import Linear_QNet, QTrainer
 from helper import plot
 
-MAX_MEMORY = 100_000
+MAX_MEMORY = 100000
 BATCH_SIZE = 1000
-LEARNING_RATE = 0.001
+LEARNING_RATE = 0.002
 
 max_exploration_rate = 1
-min_exploration_rate = 0
-exploration_decay_rate = 0.01
-
+min_exploration_rate = 0.01
+exploration_decay_rate = 0.05
 class Agent:
 
     def __init__(self):
@@ -21,10 +20,10 @@ class Agent:
         # parameter to control randomness
         self.epsilon = 1
         # discount rate
-        self.gamma = 0.9
+        self.gamma = 0.8
         self.memory = deque(maxlen=MAX_MEMORY)
         # model takes 11 states, one hidden layer, and 3 for output because 3 different numbers in action
-        self.model = Linear_QNet(11, 256, 3)
+        self.model = Linear_QNet(14, 450, 3)
         self.trainer = QTrainer(self.model, learning_rate= LEARNING_RATE, gamma=self.gamma)
 
     # storing 11 states
@@ -49,7 +48,10 @@ class Agent:
         dir_u = game.direction == Direction.UP
         dir_d = game.direction == Direction.DOWN
 
-        # create list for 11 states to then return the 11 sized array
+        # calculate far dangers
+        far_danger_straight, far_danger_right, far_danger_left = game.calculate_far_dangers()
+
+        # create list for 11 states to then return the 14 sized array
 
         state = [
             # Danger Straight
@@ -69,6 +71,9 @@ class Agent:
             (dir_r and game.is_collision(point_u)) or
             (dir_u and game.is_collision(point_l)) or
             (dir_d and game.is_collision(point_r)),
+
+            # Far Dangers
+            far_danger_straight, far_danger_right, far_danger_left,
 
             # Move Direction
             dir_l, dir_r, dir_u, dir_d,
@@ -111,7 +116,6 @@ class Agent:
         # more games = smaller epsilon
         self.epsilon = min_exploration_rate + \
                        (max_exploration_rate - min_exploration_rate) * np.exp(-exploration_decay_rate*self.number_of_games)
-        
         final_move = [0, 0, 0]
 
         # get random move
@@ -140,6 +144,8 @@ def train():
 
     # training loop
     while True:
+        if agent.number_of_games == 400:
+            break
         # get old/current state
         state_old = agent.get_state(game)
 

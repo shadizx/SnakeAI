@@ -20,6 +20,7 @@ class SnakeGame:
         self.HEIGHT = height
         self.OFFSET = self.WIDTH - self.HEIGHT
         self.TILE_SIZE = 40
+        self.SPEED = 3
         # init display
         self.grid_list = [[x, y] for x in range(self.OFFSET, self.WIDTH, self.TILE_SIZE)
                             for y in range(0, self.HEIGHT, self.TILE_SIZE)]
@@ -52,12 +53,15 @@ class SnakeGame:
         self.food = Point(x, y)
 
     def play_step(self):
+        self.frame_iteration += 1
+
         # 1. collect user input
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
             if event.type == pygame.KEYDOWN:
+                self.SPEED = 5
                 if event.key == pygame.K_LEFT and self.directions[pygame.K_LEFT]:
                     self.direction = Direction.LEFT
                     self.directions = {pygame.K_UP: 1, pygame.K_DOWN: 1, pygame.K_LEFT: 1, pygame.K_RIGHT: 0}
@@ -70,6 +74,8 @@ class SnakeGame:
                 elif event.key == pygame.K_DOWN and self.directions[pygame.K_DOWN]:
                     self.direction = Direction.DOWN
                     self.directions = {pygame.K_UP: 0, pygame.K_DOWN: 1, pygame.K_LEFT: 1, pygame.K_RIGHT: 1}
+                else:
+                    self.SPEED = 1
 
         # 2. move
         self._move(self.direction) # update the head
@@ -88,9 +94,11 @@ class SnakeGame:
         else:
             self.snake.pop()
 
+        print(self.frame_iteration)
+        print(self.calculate_far_dangers())
         # 5. update ui and clock
         self.update_ui()
-        self.clock.tick(12)
+        self.clock.tick(self.SPEED)
         # 6. return game over and score
         return game_over, self.score
 
@@ -104,6 +112,54 @@ class SnakeGame:
             return True
 
         return False
+
+    # function that calculates which direction is the 'safest' by checking each square in each direction
+    # returns[straight, right, left] and 1 means the direction that is the safest
+    # ex: [1, 0, 0] means that right and left have closer dangers and snake should go straight
+    def calculate_far_dangers(self):
+        snake_set = {(rect.x, rect.y) for rect in self.snake}
+        head = self.snake[0]
+        direction = self.direction
+
+        if direction == Direction.LEFT:
+            straight_start, straight_end, straight_inc = head.x - self.TILE_SIZE, self.OFFSET, -self.TILE_SIZE
+            right_start, right_end, right_inc = head.y - self.TILE_SIZE, 0, -self.TILE_SIZE
+            left_start, left_end, left_inc = head.y + self.TILE_SIZE, self.HEIGHT, self.TILE_SIZE
+        elif direction == Direction.RIGHT:
+            straight_start, straight_end, straight_inc = head.x + self.TILE_SIZE, self.WIDTH, self.TILE_SIZE
+            right_start, right_end, right_inc = head.y + self.TILE_SIZE, self.HEIGHT, self.TILE_SIZE
+            left_start, left_end, left_inc = head.y - self.TILE_SIZE, 0, -self.TILE_SIZE
+        elif direction == Direction.UP:
+            straight_start, straight_end, straight_inc = head.y - self.TILE_SIZE, 0, -self.TILE_SIZE
+            right_start, right_end, right_inc = head.x + self.TILE_SIZE, self.WIDTH, self.TILE_SIZE
+            left_start, left_end, left_inc = head.x - self.TILE_SIZE, self.OFFSET, -self.TILE_SIZE
+        else:
+            straight_start, straight_end, straight_inc = head.y + self.TILE_SIZE, self.HEIGHT, self.TILE_SIZE
+            right_start, right_end, right_inc = head.x - self.TILE_SIZE, self.OFFSET, -self.TILE_SIZE
+            left_start, left_end, left_inc = head.x + self.TILE_SIZE, self.WIDTH, self.TILE_SIZE
+
+        # check straight
+        straight_count = 1
+        for straight in range(straight_start, straight_end, straight_inc):
+            # if we found a collision (body of snake) break and save count
+            if (straight, head.y) in snake_set:
+                break
+            straight_count += 1
+        # check right
+        right_count = 1
+        for right in range(right_start, right_end, right_inc):
+            if (head.x, right) in snake_set:
+                break
+            right_count += 1
+        # check left
+        left_count = 1
+        for left in range(left_start, left_end, left_inc):
+            if (head.x, left) in snake_set:
+                break
+            left_count += 1
+        divisor = max(straight_count, right_count, left_count)
+
+        return straight_count // divisor, right_count // divisor, left_count // divisor
 
     def draw_grid(self):
         for x in range(self.OFFSET, self.WIDTH, self.TILE_SIZE):
@@ -162,7 +218,7 @@ if __name__ == '__main__':
         game_over, score = game.play_step()
 
         if game_over == True:
-            break
+            game.start()
 
     print('Final Score', score)
 
