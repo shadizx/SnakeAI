@@ -4,7 +4,7 @@ import numpy as np
 from collections import deque
 from SnakeAI import SnakeGameAI, Direction, Point
 from model import Linear_QNet, QTrainer
-from helper import plot
+from helper import plot, annotate
 
 MAX_MEMORY = 100000
 BATCH_SIZE = 1000
@@ -13,6 +13,8 @@ LEARNING_RATE = 0.002
 max_exploration_rate = 1
 min_exploration_rate = 0.01
 exploration_decay_rate = 0.05
+
+far_dangers = True  # since we are currently using this
 class Agent:
 
     def __init__(self):
@@ -23,7 +25,8 @@ class Agent:
         self.gamma = 0.8
         self.memory = deque(maxlen=MAX_MEMORY)
         # model takes 11 states, one hidden layer, and 3 for output because 3 different numbers in action
-        self.model = Linear_QNet(14, 450, 3)
+        self.hidden_layers = 450
+        self.model = Linear_QNet(14, self.hidden_layers, 3)
         self.trainer = QTrainer(self.model, learning_rate= LEARNING_RATE, gamma=self.gamma)
 
     # storing 11 states
@@ -50,7 +53,7 @@ class Agent:
 
         # calculate far dangers
         far_danger_straight, far_danger_right, far_danger_left = game.calculate_far_dangers()
-
+        
         # create list for 11 states to then return the 14 sized array
 
         state = [
@@ -134,6 +137,8 @@ class Agent:
             final_move[move] = 1 # set highest index to 1, in this case would be [1, 0, 0]
 
         return final_move
+
+
 def train():
     score_list = []
     mean_scores_list = []
@@ -145,6 +150,8 @@ def train():
     # training loop
     while True:
         if agent.number_of_games == 400:
+            annotate([MAX_MEMORY, BATCH_SIZE, LEARNING_RATE, max_exploration_rate, min_exploration_rate, exploration_decay_rate, 
+                      agent.gamma, agent.hidden_layers, far_dangers, agent.number_of_games, highscore, mean_score], "Results.xlsx")
             break
         # get old/current state
         state_old = agent.get_state(game)
@@ -180,5 +187,6 @@ def train():
             mean_score = total_score / agent.number_of_games
             mean_scores_list.append(mean_score)
             plot(score_list, mean_scores_list)
+
 if __name__ == '__main__':
     train()
