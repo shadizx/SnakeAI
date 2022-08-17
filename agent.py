@@ -6,15 +6,26 @@ from SnakeAI import SnakeGameAI, Direction, Point
 from model import Linear_QNet, QTrainer
 from helper import plot, annotate
 
-MAX_MEMORY = 100000
+#
+MAX_MEMORY = 5000000
+#
 BATCH_SIZE = 1000
-LEARNING_RATE = 0.002
 
+# Generally, a large learning rate allows the model to learn faster, 
+# at the cost of arriving on a sub-optimal final set of weights. 
+# 
+# A smaller learning rate may allow the model to learn a more optimal or 
+# even globally optimal set of weights but may take significantly longer to train.
+LEARNING_RATE = 0.001
+
+# % of random moves starts at 100
 max_exploration_rate = 1
-min_exploration_rate = 0.01
-exploration_decay_rate = 0.05
+# min random % of moves
+min_exploration_rate = 0.0001
+# how fast max goes to min, higher means faster decrease
+exploration_decay_rate = 0.03
 
-far_dangers = True  # since we are currently using this
+far_dangers = True
 class Agent:
 
     def __init__(self):
@@ -25,8 +36,9 @@ class Agent:
         self.gamma = 0.8
         self.memory = deque(maxlen=MAX_MEMORY)
         # model takes 11 states, one hidden layer, and 3 for output because 3 different numbers in action
-        self.hidden_layers = 450
-        self.model = Linear_QNet(14, self.hidden_layers, 3)
+        self.hidden_layers = 1000
+        self.input_layer = 14 if far_dangers else 11
+        self.model = Linear_QNet(self.input_layer, self.hidden_layers, 3)
         self.trainer = QTrainer(self.model, learning_rate= LEARNING_RATE, gamma=self.gamma)
 
     # storing 11 states
@@ -52,7 +64,8 @@ class Agent:
         dir_d = game.direction == Direction.DOWN
 
         # calculate far dangers
-        far_danger_straight, far_danger_right, far_danger_left = game.calculate_far_dangers()
+        if far_dangers: 
+            far_danger_straight, far_danger_right, far_danger_left = game.calculate_far_dangers()
         
         # create list for 11 states to then return the 14 sized array
 
@@ -75,9 +88,6 @@ class Agent:
             (dir_u and game.is_collision(point_l)) or
             (dir_d and game.is_collision(point_r)),
 
-            # Far Dangers
-            far_danger_straight, far_danger_right, far_danger_left,
-
             # Move Direction
             dir_l, dir_r, dir_u, dir_d,
 
@@ -91,6 +101,9 @@ class Agent:
             # food down
             game.head.y < game.food.y
         ]
+        # Far Dangers
+        if far_dangers:
+            state.append(far_danger_straight, far_danger_right, far_danger_left)
 
         # turn list to array since there are true or false inside, will be converted to int
         return np.array(state, dtype=int)
@@ -181,12 +194,12 @@ def train():
                 highscore = score
                 agent.model.save()
 
-            print(f'Game #{agent.number_of_games} Score: {score} Highscore: {highscore}')
             score_list.append(score)
             total_score += score
             mean_score = total_score / agent.number_of_games
             mean_scores_list.append(mean_score)
             plot(score_list, mean_scores_list)
+            print(f'Game #{agent.number_of_games} Score: {score} Mean Score: {mean_score} Highscore: {highscore}')
 
 if __name__ == '__main__':
     train()
